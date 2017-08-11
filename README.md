@@ -1,0 +1,2 @@
+# httpmapper
+httpmapper是对httpasyncclient的简单封装，用于发送http请求并将返回数据转换成对象，以mapper接口的方式使用http-client，应用代码只需要写个interface的声明即可
