@@ -14,11 +14,13 @@ public class MappedProxyTest {
   @Test
   public void handleInvocation() throws ExecutionException, InterruptedException, IOException, NoSuchMethodException {
 
+    //初始化框架
     final Configuration configuration = Configuration.newBuilder()
         .parse(TestServiceFacade.class)
         .setDefaultResponseHandler(new FastJsonResponseHandler())
         .build();
 
+    //获取mapper接口的实例并调用接口上的方法
     final TestServiceFacade testServiceFacade = configuration.newMapper(TestServiceFacade.class);
     JsonResult<TestBean> result = testServiceFacade.get("name").get();
     System.out.println(result);
