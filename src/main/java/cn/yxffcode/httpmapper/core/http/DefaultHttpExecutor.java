@@ -27,6 +27,7 @@ import java.io.Closeable;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
@@ -73,6 +74,12 @@ public class DefaultHttpExecutor implements HttpExecutor, AutoCloseable {
           return method.invoke(future, objects);
         }
         final HttpResponse httpResponse = (HttpResponse) method.invoke(future, objects);
+        final List<RequestPostProcessor> commonRequestPostProcessors = configuration.getCommonRequestPostProcessors();
+        if (!commonRequestPostProcessors.isEmpty()) {
+          for (RequestPostProcessor commonRequestPostProcessor : commonRequestPostProcessors) {
+            commonRequestPostProcessor.postProcessResponse(httpResponse, mappedRequest);
+          }
+        }
         final Iterable<RequestPostProcessor> postProcessors = configuration.getPostProcessors(mappedRequest.getId());
         if (postProcessors != null) {
           for (RequestPostProcessor postProcessor : postProcessors) {
@@ -127,6 +134,14 @@ public class DefaultHttpExecutor implements HttpExecutor, AutoCloseable {
   }
 
   private void invokeBeforeRequest(HttpUriRequest httpUriRequest, MappedRequest mappedRequest, Map<String, Object> params) {
+    final List<RequestPostProcessor> commonRequestPostProcessors = configuration.getCommonRequestPostProcessors();
+    if (!commonRequestPostProcessors.isEmpty()) {
+      for (RequestPostProcessor commonRequestPostProcessor : commonRequestPostProcessors) {
+        if (!commonRequestPostProcessor.postProcessRequest(httpUriRequest, mappedRequest, params)) {
+          throw new StopRequestException("请求停止，RequestPostProcessor处理失败:" + mappedRequest + " params:" + params);
+        }
+      }
+    }
     final Iterable<RequestPostProcessor> postProcessors = configuration.getPostProcessors(mappedRequest.getId());
     if (postProcessors != null) {
       for (RequestPostProcessor postProcessor : postProcessors) {

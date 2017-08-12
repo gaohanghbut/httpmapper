@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 public interface TestServiceFacade {
 
   @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
+  @PostProcessors({KeepHeaderPostProcessor.class})
   Future<JsonResult<TestBean>> get(@HttpParam("name") String name);
 
   @Request("http://localhost:8080/home/index.json?name=#{name}")

@@ -18,10 +18,13 @@ import cn.yxffcode.httpmapper.core.http.DefaultHttpExecutor;
 import cn.yxffcode.httpmapper.core.http.HttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.HttpExecutor;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -30,6 +33,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @author gaohang on 8/6/17.
  */
 public class Configuration {
+
+  private final List<RequestPostProcessor> commonRequestPostProcessors;
 
   public static ConfigurationBuilder newBuilder() {
     return new ConfigurationBuilder();
@@ -46,16 +51,22 @@ public class Configuration {
                         Multimap<String, RequestPostProcessor> requestPostProcessors,
                         Map<String, ResponseHandler> responseHandlers,
                         ResponseHandler defaultResponseHandler,
-                        HttpClientFactory httpClientFactory) {
+                        HttpClientFactory httpClientFactory,
+                        List<RequestPostProcessor> commonRequestPostProcessors) {
     this.mappedRequests = mappedRequests;
     this.requestPostProcessors = requestPostProcessors;
     this.responseHandlers = responseHandlers;
     this.defaultResponseHandler = defaultResponseHandler;
     this.httpExecutor = new DefaultHttpExecutor(httpClientFactory, this);
+    this.commonRequestPostProcessors = Collections.unmodifiableList(commonRequestPostProcessors);
   }
 
   public HttpExecutor getHttpExecutor() {
     return httpExecutor;
+  }
+
+  public List<RequestPostProcessor> getCommonRequestPostProcessors() {
+    return commonRequestPostProcessors;
   }
 
   public ResponseHandler getResponseHandler(String mrId) {
@@ -87,12 +98,19 @@ public class Configuration {
     private final Multimap<String, RequestPostProcessor> requestPostProcessors = HashMultimap.create();
     private ResponseHandler defaultResponseHandler;
     private HttpClientFactory httpClientFactory;
+    private List<RequestPostProcessor> commonRequestPostProcessors = Lists.newArrayList();
 
     private ConfigurationBuilder() {
     }
 
     public ConfigurationBuilder setHttpClientFactory(HttpClientFactory httpClientFactory) {
       this.httpClientFactory = httpClientFactory;
+      return this;
+    }
+
+    public ConfigurationBuilder addCommonRequestPostProcessor(RequestPostProcessor requestPostProcessor) {
+      checkNotNull(requestPostProcessor);
+      commonRequestPostProcessors.add(requestPostProcessor);
       return this;
     }
 
@@ -221,7 +239,8 @@ public class Configuration {
         this.httpClientFactory = new DefaultHttpClientFactory();
       }
       return new Configuration(mappedRequests, requestPostProcessors,
-          responseHandlers, defaultResponseHandler, httpClientFactory);
+          responseHandlers, defaultResponseHandler, httpClientFactory,
+          commonRequestPostProcessors);
     }
   }
 
