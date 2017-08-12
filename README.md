@@ -46,6 +46,7 @@ http请求返回的内容在默认情况下会使用FastJson做反序列化，�
 ```java
 configuration.setDefaultResponseHandler(new FastJsonResponseHandler());
 ```
+或者：
 ```java
 configuration.setDefaultResponseHandler(new ToStringResponseHandler());
 ```
