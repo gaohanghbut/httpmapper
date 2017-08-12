@@ -17,7 +17,6 @@ public class MappedProxyTest {
     //初始化框架
     final Configuration configuration = Configuration.newBuilder()
         .parse(TestServiceFacade.class)
-        .setDefaultResponseHandler(new FastJsonResponseHandler())
         .build();
 
     //获取mapper接口的实例并调用接口上的方法
@@ -25,8 +24,10 @@ public class MappedProxyTest {
     JsonResult<TestBean> result = testServiceFacade.get("name").get();
     System.out.println(result);
 
-    result = testServiceFacade.post("name").get();
+    result = testServiceFacade.post("name");
     System.out.println(result);
+
+    System.out.println(testServiceFacade.getString("name"));
 
   }
 

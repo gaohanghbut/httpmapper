@@ -59,6 +59,10 @@ public class DefaultHttpExecutor implements HttpExecutor, AutoCloseable {
     }
   }
 
+  public HttpAsyncClient getHttpClient() {
+    return httpClient;
+  }
+
   @Override
   public Future<HttpResponse> execute(MappedRequest mappedRequest, Object params) {
     checkNotNull(mappedRequest);

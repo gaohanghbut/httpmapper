@@ -1,6 +1,7 @@
 package cn.yxffcode.httpmapper.core.cfg;
 
 import cn.yxffcode.httpmapper.core.DELETE;
+import cn.yxffcode.httpmapper.core.FastJsonResponseHandler;
 import cn.yxffcode.httpmapper.core.GET;
 import cn.yxffcode.httpmapper.core.HttpMethod;
 import cn.yxffcode.httpmapper.core.MappedProxy;
@@ -12,7 +13,6 @@ import cn.yxffcode.httpmapper.core.Request;
 import cn.yxffcode.httpmapper.core.RequestPostProcessor;
 import cn.yxffcode.httpmapper.core.Response;
 import cn.yxffcode.httpmapper.core.ResponseHandler;
-import cn.yxffcode.httpmapper.core.ToStringResponseHandler;
 import cn.yxffcode.httpmapper.core.http.DefaultHttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.DefaultHttpExecutor;
 import cn.yxffcode.httpmapper.core.http.HttpClientFactory;
@@ -233,7 +233,7 @@ public class Configuration {
 
     public Configuration build() {
       if (defaultResponseHandler == null) {
-        defaultResponseHandler = new ToStringResponseHandler();
+        defaultResponseHandler = new FastJsonResponseHandler();
       }
       if (httpClientFactory == null) {
         this.httpClientFactory = new DefaultHttpClientFactory();
