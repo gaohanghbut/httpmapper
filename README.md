@@ -21,7 +21,7 @@ public interface TestServiceFacade {
 }
 ```
 
-初始化接口：
+初始化接口（后文会有与Spring集成的方式）：
 ```java
 public void handleInvocation() throws Exception {
 
