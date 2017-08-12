@@ -15,6 +15,7 @@ import cn.yxffcode.httpmapper.core.ResponseHandler;
 import cn.yxffcode.httpmapper.core.ToStringResponseHandler;
 import cn.yxffcode.httpmapper.core.http.DefaultHttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.DefaultHttpExecutor;
+import cn.yxffcode.httpmapper.core.http.HttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.HttpExecutor;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -44,12 +45,13 @@ public class Configuration {
   private Configuration(Map<String, MappedRequest> mappedRequests,
                         Multimap<String, RequestPostProcessor> requestPostProcessors,
                         Map<String, ResponseHandler> responseHandlers,
-                        ResponseHandler defaultResponseHandler) {
+                        ResponseHandler defaultResponseHandler,
+                        HttpClientFactory httpClientFactory) {
     this.mappedRequests = mappedRequests;
     this.requestPostProcessors = requestPostProcessors;
     this.responseHandlers = responseHandlers;
     this.defaultResponseHandler = defaultResponseHandler;
-    this.httpExecutor = new DefaultHttpExecutor(new DefaultHttpClientFactory(), this);
+    this.httpExecutor = new DefaultHttpExecutor(httpClientFactory, this);
   }
 
   public HttpExecutor getHttpExecutor() {
@@ -84,8 +86,14 @@ public class Configuration {
     private final Map<String, ResponseHandler> responseHandlers = Maps.newHashMap();
     private final Multimap<String, RequestPostProcessor> requestPostProcessors = HashMultimap.create();
     private ResponseHandler defaultResponseHandler;
+    private HttpClientFactory httpClientFactory;
 
     private ConfigurationBuilder() {
+    }
+
+    public ConfigurationBuilder setHttpClientFactory(HttpClientFactory httpClientFactory) {
+      this.httpClientFactory = httpClientFactory;
+      return this;
     }
 
     public ConfigurationBuilder addRequestPostProcessor(String mrId, Class<? extends RequestPostProcessor>[] types) {
@@ -153,7 +161,7 @@ public class Configuration {
         final int idx = rawUrl.lastIndexOf('#');
         if (idx < 0) {
           mappedRequestBuilder.setUrl(rawUrl);
-        } else if (idx < rawUrl.length() - 1 && rawUrl.charAt(idx + 1) != '{'){
+        } else if (idx < rawUrl.length() - 1 && rawUrl.charAt(idx + 1) != '{') {
           mappedRequestBuilder.setUrl(rawUrl.substring(0, idx));
           if (idx != rawUrl.length() - 1) {
             mappedRequestBuilder.setAttach(rawUrl.substring(idx + 1));
@@ -209,7 +217,10 @@ public class Configuration {
       if (defaultResponseHandler == null) {
         defaultResponseHandler = new ToStringResponseHandler();
       }
-      return new Configuration(mappedRequests, requestPostProcessors, responseHandlers, defaultResponseHandler);
+      if (httpClientFactory == null) {
+        this.httpClientFactory = new DefaultHttpClientFactory();
+      }
+      return new Configuration(mappedRequests, requestPostProcessors, responseHandlers, defaultResponseHandler, httpClientFactory);
     }
   }
 
