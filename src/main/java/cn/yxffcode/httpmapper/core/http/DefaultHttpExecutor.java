@@ -115,7 +115,7 @@ public class DefaultHttpExecutor implements HttpExecutor, AutoCloseable {
                 (Function<Map.Entry<String, Object>, NameValuePair>) en ->
                     new BasicNameValuePair(en.getKey(), String.valueOf(en.getValue())))));
           }
-          httpPost.setURI(new URI(mappedRequest.rendUrl(params)));
+          httpPost.setURI(new URI(mappedRequest.rendPureUrl(params)));
           return httpPost;
         }
         default:

@@ -3,9 +3,12 @@ package cn.yxffcode.httpmapper.core;
 import cn.yxffcode.httpmapper.core.reflection.ObjectTraversal;
 import cn.yxffcode.httpmapper.core.text.TextTemplate;
 import com.google.common.base.Objects;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Maps;
 
 import java.lang.reflect.Type;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,6 +20,9 @@ public class MappedRequest {
     return new MappedRequestBuilder(returnType);
   }
 
+  private static final Splitter PARAM_SPLITTER = Splitter.on('=').trimResults();
+  private static final Splitter SEPERATE_SPLITTER = Splitter.on('&').trimResults();
+
   private final String id;
   private final String url;
   private final String attach;
@@ -24,6 +30,8 @@ public class MappedRequest {
   private final EntityType entityType;
   private final TextTemplate textTemplate;
   private final Type returnType;
+  private final Map<String, String> queryStringParams;
+  private final TextTemplate pureUrlTemplate;
 
   private MappedRequest(String id,
                         String url,
@@ -38,6 +46,25 @@ public class MappedRequest {
     this.entityType = entityType;
     this.textTemplate = new TextTemplate(url);
     this.returnType = returnType;
+
+    final int i = url.indexOf('?');
+    if (i < 0 || i == url.length() - 1) {
+      this.queryStringParams = Collections.emptyMap();
+      this.pureUrlTemplate = textTemplate;
+    } else {
+      final Map<String, String> params = Maps.newHashMap();
+
+      final String queryString = url.substring(i + 1);
+
+      for (String pair : SEPERATE_SPLITTER.split(queryString)) {
+        final List<String> param = PARAM_SPLITTER.splitToList(pair);
+        params.put(param.get(0), param.get(1));
+      }
+
+      this.queryStringParams = Collections.unmodifiableMap(params);
+
+      this.pureUrlTemplate = new TextTemplate(url.substring(0, i));
+    }
   }
 
   public String getId() {
@@ -70,11 +97,22 @@ public class MappedRequest {
     }
     final ObjectTraversal objectTraversal = ObjectTraversal.wrap(parameterObject);
 
-    return textTemplate.params(objectTraversal);
+    final Map<String, Object> params = textTemplate.params(objectTraversal);
+
+    for (Map.Entry<String, String> en : queryStringParams.entrySet()) {
+      if (!en.getValue().startsWith("#{")) {
+        params.put(en.getKey(), en.getValue());
+      }
+    }
+    return params;
   }
 
   public String rendUrl(Map<String, Object> params) {
     return textTemplate.rend(params).toString();
+  }
+
+  public String rendPureUrl(Map<String, Object> params) {
+    return pureUrlTemplate.rend(params).toString();
   }
 
   @Override
