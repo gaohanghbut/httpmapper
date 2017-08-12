@@ -81,14 +81,14 @@ public class KeepHeaderPostProcessor implements RequestPostProcessor {
 public interface TestServiceFacade {
 
   /**
-  * 异步调用
-  */
+   * 异步调用
+   */
   @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
   Future<JsonResult<TestBean>> get(@HttpParam("name") String name);
 
   /**
-  * 同步调用
-  */
+   * 同步调用
+   */
   @Request("http://localhost:8080/home/index.json?name=#{name}")
   @POST
   JsonResult<TestBean> post(@HttpParam("name") String name);
