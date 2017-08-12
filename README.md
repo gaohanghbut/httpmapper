@@ -27,7 +27,6 @@ public void handleInvocation() throws Exception {
 
     final Configuration configuration = Configuration.newBuilder()
         .parse(TestServiceFacade.class)
-        .setDefaultResponseHandler(new FastJsonResponseHandler())
         .build();
     
     final TestServiceFacade testServiceFacade = configuration.newMapper(TestServiceFacade.class);
@@ -40,7 +39,55 @@ public void handleInvocation() throws Exception {
 }
 
 ```
+http请求返回的内容在默认情况下会使用FastJson做反序列化，支持自定义反序列化方式
+## 自定义反序列化HttpResponse
+### 设置默认的反序列化方式
+可使用Configuration.setDefaultResponseHandler()方法设置默认反序列化，例如：
+```java
+configuration.setDefaultResponseHandler(new FastJsonResponseHandler());
+```
+```java
+configuration.setDefaultResponseHandler(new ToStringResponseHandler());
+```
+### 为请求定制ResponseHandler
+可使用@Response注解为请求定制ResponseHandler，@Response注解提供两种使用方式：
+* 将@Response标记在接口上，表示此接口默认使用的ResponseHandler，例如：
+```java
+@Response(FastJsonResponseHandler.class)
+public interface TestServiceFacade {
+}
+```
+* 将@Response注解标记在方法上，表示此方法使用的ResponseHandler，例如：
+```java
+public interface TestServiceFacade {
+  
+  @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
+  @Response(ToStringResponseHandler.class)
+  String getString(@HttpParam("name") String name);
+}
 
+```
+两种方式可同时使用:
+```java
+@Response(FastJsonResponseHandler.class)
+public interface TestServiceFacade {
+
+  @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
+  @PostProcessors({KeepHeaderPostProcessor.class})
+  Future<JsonResult<TestBean>> get(@HttpParam("name") String name);
+
+  @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
+  @Response(ToStringResponseHandler.class)
+  String getString(@HttpParam("name") String name);
+
+  @Request("http://localhost:8080/home/index.json?name=#{name}")
+  @POST
+  JsonResult<TestBean> post(@HttpParam("name") String name);
+
+}
+
+```
+如果即没有在接口上标记@Response注解，也没有在方法上标记@Response注解，则使用Configuration.getDefaultResponseHandler()
 ## 定制HttpClient
 可以调用Configuration.setHttpClientFactory()方法提供一个HttpClientFactory
 来替代默认的DefaultHttpClientFactory，用于定制HttpClient对象
