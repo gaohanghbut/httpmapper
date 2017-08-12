@@ -166,3 +166,36 @@ public interface TestServiceFacade {
 ```
 一个mapper接口的方法在发送请求时使用的RequestPostProcessor为：
 全局 + 接口级别 + 方法级别
+
+## 与Spring集成
+在Spring中添加配置:
+```xml
+  <bean class="cn.yxffcode.httpmapper.spring.HttpMapperAutoConfigurer">
+    <property name="basePackages">
+      <array>
+        <value>cn.yxffcode.httpmapper.spring</value>
+      </array>
+    </property>
+    <property name="annotation" value="org.springframework.stereotype.Component"/>
+  </bean>
+```
+可配置DefaultResponseHandler, 全局的RequestPostProcessors以及HttpClientFactory
+```xml
+  <bean class="cn.yxffcode.httpmapper.spring.HttpMapperAutoConfigurer">
+    <property name="basePackages">
+      <array>
+        <value>cn.yxffcode.httpmapper.spring</value>
+      </array>
+    </property>
+    <property name="annotation" value="org.springframework.stereotype.Component"/>
+
+    <!--以下是可选-->
+    <property name="commonRequestPostProcessors">
+      <list>
+        <ref bean="keepHeaderPostProcessor"/>
+      </list>
+    </property>
+    <property name="defaultResponseHandler" ref="fastJsonResponseHandler"/>
+    <property name="httpClientFactory" ref="defaultHttpClientFactory"/>
+  </bean>
+```

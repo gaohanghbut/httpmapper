@@ -3,6 +3,10 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
+  <bean name="keepHeaderPostProcessor" class="cn.yxffcode.httpmapper.spring.KeepHeaderPostProcessor"/>
+  <bean name="fastJsonResponseHandler" class="cn.yxffcode.httpmapper.core.FastJsonResponseHandler"/>
+  <bean name="defaultHttpClientFactory" class="cn.yxffcode.httpmapper.core.http.DefaultHttpClientFactory"/>
+
   <bean class="cn.yxffcode.httpmapper.spring.HttpMapperAutoConfigurer">
     <property name="basePackages">
       <array>
@@ -10,5 +14,14 @@
       </array>
     </property>
     <property name="annotation" value="org.springframework.stereotype.Component"/>
+
+    <!--以下是可选-->
+    <property name="commonRequestPostProcessors">
+      <list>
+        <ref bean="keepHeaderPostProcessor"/>
+      </list>
+    </property>
+    <property name="defaultResponseHandler" ref="fastJsonResponseHandler"/>
+    <property name="httpClientFactory" ref="defaultHttpClientFactory"/>
   </bean>
 </beans>
