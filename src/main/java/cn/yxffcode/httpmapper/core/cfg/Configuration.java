@@ -220,7 +220,8 @@ public class Configuration {
       if (httpClientFactory == null) {
         this.httpClientFactory = new DefaultHttpClientFactory();
       }
-      return new Configuration(mappedRequests, requestPostProcessors, responseHandlers, defaultResponseHandler, httpClientFactory);
+      return new Configuration(mappedRequests, requestPostProcessors,
+          responseHandlers, defaultResponseHandler, httpClientFactory);
     }
   }
 
