@@ -6,13 +6,18 @@ httpmapper是对httpasyncclient的简单封装，用于发送http请求并将返
 ```java
 public interface TestServiceFacade {
 
-  @Request("http://localhost:8080/home/index.json?name=#{name}")
+  /**
+   * 异步调用
+   */
+  @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
   Future<JsonResult<TestBean>> get(@HttpParam("name") String name);
 
+  /**
+   * 同步调用
+   */
   @Request("http://localhost:8080/home/index.json?name=#{name}")
   @POST
-  Future<JsonResult<TestBean>> post(@HttpParam("name") String name);
-
+  JsonResult<TestBean> post(@HttpParam("name") String name);
 }
 ```
 
