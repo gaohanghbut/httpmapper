@@ -80,15 +80,21 @@ public class KeepHeaderPostProcessor implements RequestPostProcessor {
 @PostProcessors({KeepHeaderPostProcessor.class})
 public interface TestServiceFacade {
 
+  /**
+  * 异步调用
+  */
   @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
   Future<JsonResult<TestBean>> get(@HttpParam("name") String name);
 
+  /**
+  * 同步调用
+  */
   @Request("http://localhost:8080/home/index.json?name=#{name}")
   @POST
-  Future<JsonResult<TestBean>> post(@HttpParam("name") String name);
+  JsonResult<TestBean> post(@HttpParam("name") String name);
 }
-
 ```
+
 2.方法级别的RequestPostProcessor
 
 将@RequestPostProcessors标记在方法上
