@@ -33,11 +33,13 @@ public class HttpMapperScanner extends ClassPathBeanDefinitionScanner {
   public HttpMapperScanner(BeanDefinitionRegistry registry,
                            HttpClientFactory httpClientFactory,
                            List<RequestPostProcessor> requestPostProcessors,
-                           ResponseHandler defaultResponseHandler) {
+                           ResponseHandler defaultResponseHandler,
+                           Class<? extends Annotation> annotation) {
     super(registry, false);
     this.httpClientFactory = httpClientFactory;
     this.requestPostProcessors = requestPostProcessors;
     this.defaultResponseHandler = defaultResponseHandler;
+    this.annotationClass = annotation;
   }
 
   public void setAnnotationClass(Class<? extends Annotation> annotationClass) {
@@ -95,10 +97,7 @@ public class HttpMapperScanner extends ClassPathBeanDefinitionScanner {
     try {
       for (BeanDefinitionHolder holder : beanDefinitions) {
         GenericBeanDefinition definition = (GenericBeanDefinition) holder.getBeanDefinition();
-        Class<?> beanClass = definition.getBeanClass();
-        if (beanClass == null) {
-          beanClass = Class.forName(definition.getBeanClassName());
-        }
+        final Class<?> beanClass = Class.forName(definition.getBeanClassName());
         builder.parse(beanClass);
         definition.setBeanClass(HttpMapperFactoryBean.class);
         definition.getConstructorArgumentValues().addIndexedArgumentValue(0, beanClass);
