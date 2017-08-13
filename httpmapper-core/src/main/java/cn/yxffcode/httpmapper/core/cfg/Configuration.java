@@ -18,18 +18,18 @@ import cn.yxffcode.httpmapper.core.http.DefaultHttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.DefaultHttpExecutor;
 import cn.yxffcode.httpmapper.core.http.HttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.HttpExecutor;
-import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import sun.security.action.GetPropertyAction;
 
 import java.lang.reflect.Method;
-import java.security.AccessController;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -49,6 +49,7 @@ public class Configuration {
   private final Map<String, ResponseHandler> responseHandlers;
   private final HttpExecutor httpExecutor;
   private final ResponseHandler defaultResponseHandler;
+  private ExecutorService callbackExecutor;
 
 
   private Configuration(Map<String, MappedRequest> mappedRequests,
@@ -56,13 +57,15 @@ public class Configuration {
                         Map<String, ResponseHandler> responseHandlers,
                         ResponseHandler defaultResponseHandler,
                         HttpClientFactory httpClientFactory,
-                        List<RequestPostProcessor> commonRequestPostProcessors) {
+                        List<RequestPostProcessor> commonRequestPostProcessors,
+                        ExecutorService callbackExecutor) {
     this.mappedRequests = mappedRequests;
     this.requestPostProcessors = requestPostProcessors;
     this.responseHandlers = responseHandlers;
     this.defaultResponseHandler = defaultResponseHandler;
     this.httpExecutor = new DefaultHttpExecutor(httpClientFactory, this);
     this.commonRequestPostProcessors = Collections.unmodifiableList(commonRequestPostProcessors);
+    this.callbackExecutor = callbackExecutor;
   }
 
   public HttpExecutor getHttpExecutor() {
@@ -76,6 +79,25 @@ public class Configuration {
   public ResponseHandler getResponseHandler(String mrId) {
     final ResponseHandler responseHandler = responseHandlers.get(mrId);
     return responseHandler != null ? responseHandler : defaultResponseHandler;
+  }
+
+  public ExecutorService getCallbackExecutor() {
+    if (callbackExecutor == null) {
+      synchronized (this) {
+        if (callbackExecutor == null) {
+          callbackExecutor = Executors.newCachedThreadPool(new ThreadFactory() {
+            private final ThreadFactory threadFactory = Executors.defaultThreadFactory();
+            @Override
+            public Thread newThread(Runnable r) {
+              final Thread thread = threadFactory.newThread(r);
+              thread.setDaemon(true);
+              return thread;
+            }
+          });
+        }
+      }
+    }
+    return callbackExecutor;
   }
 
   public ResponseHandler getDefaultResponseHandler() {
@@ -103,12 +125,18 @@ public class Configuration {
     private ResponseHandler defaultResponseHandler;
     private HttpClientFactory httpClientFactory;
     private List<RequestPostProcessor> commonRequestPostProcessors = Lists.newArrayList();
+    private ExecutorService callbackExecutor;
 
     private ConfigurationBuilder() {
     }
 
     public ConfigurationBuilder setHttpClientFactory(HttpClientFactory httpClientFactory) {
       this.httpClientFactory = httpClientFactory;
+      return this;
+    }
+
+    public ConfigurationBuilder setCallbackExecutor(ExecutorService callbackExecutor) {
+      this.callbackExecutor = callbackExecutor;
       return this;
     }
 
@@ -178,7 +206,7 @@ public class Configuration {
           continue;
         }
         final MappedRequest.MappedRequestBuilder mappedRequestBuilder =
-            MappedRequest.newBuilder(method.getGenericReturnType());
+            MappedRequest.newBuilder(method);
         final RequestInfo requestInfo = new RequestInfo(request);
         mappedRequestBuilder.setRequestInfo(requestInfo);
 
@@ -234,7 +262,7 @@ public class Configuration {
       }
       return new Configuration(mappedRequests, requestPostProcessors,
           responseHandlers, defaultResponseHandler, httpClientFactory,
-          commonRequestPostProcessors);
+          commonRequestPostProcessors, callbackExecutor);
     }
   }
 

@@ -1,7 +1,10 @@
 package cn.yxffcode.httpmapper.spring;
 
+import cn.yxffcode.httpmapper.core.ResponseCallback;
 import org.junit.Test;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author gaohang on 8/13/17.
@@ -13,7 +16,13 @@ public class HttpMapperAutoConfigurerTest {
 
     final TestServiceFacade testServiceFacade = ctx.getBean(TestServiceFacade.class);
 
-    System.out.println(testServiceFacade.getString("name"));
+    testServiceFacade.getString("name", new ResponseCallback<JsonResult<TestBean>>() {
+      @Override
+      public void apply(JsonResult<TestBean> result) {
+        System.out.println(result);
+      }
+    });
+
   }
 
 }

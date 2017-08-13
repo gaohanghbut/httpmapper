@@ -6,6 +6,8 @@ import cn.yxffcode.httpmapper.core.http.HttpExecutor;
 import com.google.common.collect.Maps;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.reflect.Reflection;
+import com.google.common.util.concurrent.JdkFutureAdapters;
+import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.http.HttpResponse;
 
 import java.lang.annotation.Annotation;
@@ -46,6 +48,13 @@ public class MappedProxy extends AbstractInvocationHandler {
     final Object paramObject = resolveRequestParameter(method, args);
     final Future<HttpResponse> future = httpExecutor.execute(mappedRequest, paramObject);
 
+    //callback
+    if (void.class == method.getReturnType()) {
+      //检查是否有callback
+      return prepareCallback(args, mrId, mappedRequest, future);
+    }
+
+    //无泛型
     final Type returnType = method.getGenericReturnType();
     if (returnType instanceof Class) {
       if (Future.class == returnType) {
@@ -56,18 +65,42 @@ public class MappedProxy extends AbstractInvocationHandler {
             : future.get(mappedRequest.getRequestInfo().getTimeout(), TimeUnit.MILLISECONDS);
       }
     }
+
+    //泛型，但类型参数是HttpResponse
     if (returnType instanceof ParameterizedType) {
       final Type[] actualTypeArguments = ((ParameterizedType) returnType).getActualTypeArguments();
       if (actualTypeArguments.length == 1 && actualTypeArguments[0] == HttpResponse.class) {
         return future;
       }
     }
+    //有泛型，返回Future
     final Future resultFuture = Reflection.newProxy(Future.class, new ResponseWrapper(future, mrId, mappedRequest));
     if (Future.class == method.getReturnType()) {
       return resultFuture;
     }
+    //返回的不是future
     return mappedRequest.getRequestInfo().getTimeout() <= 0 ? resultFuture.get()
         : resultFuture.get(mappedRequest.getRequestInfo().getTimeout(), TimeUnit.MILLISECONDS);
+  }
+
+  private Object prepareCallback(Object[] args, String mrId, MappedRequest mappedRequest, Future<HttpResponse> future) {
+    if (args != null && args.length != 0 && args[args.length - 1] != null
+        && args[args.length - 1] instanceof ResponseCallback) {
+      final ResponseCallback callback = (ResponseCallback) args[args.length - 1];
+      final Future resultFuture = Reflection.newProxy(Future.class, new ResponseWrapper(future, mrId, mappedRequest));
+      final ListenableFuture listenableFuture = JdkFutureAdapters.listenInPoolThread(resultFuture);
+      listenableFuture.addListener(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            callback.apply(listenableFuture.get());
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }, configuration.getCallbackExecutor());
+    }
+    return null;
   }
 
   private Object resolveRequestParameter(Method method, Object[] args) {
@@ -104,6 +137,7 @@ public class MappedProxy extends AbstractInvocationHandler {
     private final Future<HttpResponse> future;
     private final String mrId;
     private final MappedRequest mappedRequest;
+    private Object result;
 
     public ResponseWrapper(Future<HttpResponse> future, String mrId, MappedRequest mappedRequest) {
       this.future = future;
@@ -116,13 +150,16 @@ public class MappedProxy extends AbstractInvocationHandler {
       if (!method.getName().equals("get")) {
         return method.invoke(future, args);
       }
+      if (result != null) {
+        return result;
+      }
       final HttpResponse httpResponse = (HttpResponse) method.invoke(future, args);
       if (httpResponse.getStatusLine().getStatusCode() != 200) {
         throw new RequestFaildException("请求出错，status=" + httpResponse.getStatusLine().getStatusCode());
       }
       final ResponseHandler responseHandler = configuration.getResponseHandler(mrId);
 
-      return responseHandler.handle(mappedRequest, httpResponse);
+      return result = responseHandler.handle(mappedRequest, httpResponse);
     }
   }
 }

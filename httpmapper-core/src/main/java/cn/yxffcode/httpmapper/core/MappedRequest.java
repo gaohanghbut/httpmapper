@@ -6,6 +6,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
@@ -16,8 +18,8 @@ import java.util.Map;
  */
 public class MappedRequest {
 
-  public static MappedRequestBuilder newBuilder(Type returnType) {
-    return new MappedRequestBuilder(returnType);
+  public static MappedRequestBuilder newBuilder(Method method) {
+    return new MappedRequestBuilder(method);
   }
 
   private static final Splitter PARAM_SPLITTER = Splitter.on('=').trimResults();
@@ -152,8 +154,26 @@ public class MappedRequest {
     private final Type returnType;
     private RequestInfo requestInfo;
 
-    public MappedRequestBuilder(Type returnType) {
-      this.returnType = returnType;
+    public MappedRequestBuilder(Method method) {
+      if (method.getReturnType() != void.class) {
+        this.returnType = method.getGenericReturnType();
+      } else {
+        final Class<?>[] parameterClasses = method.getParameterTypes();
+        if (parameterClasses != null && parameterClasses.length > 0
+            && parameterClasses[parameterClasses.length - 1] == ResponseCallback.class) {
+          final Type[] parameterTypes = method.getGenericParameterTypes();
+          final Type callbackType = parameterTypes[parameterTypes.length - 1];
+          if (callbackType instanceof ParameterizedType) {
+            final Type type = ((ParameterizedType) callbackType).getActualTypeArguments()[0];
+            this.returnType = type;
+          } else {
+            this.returnType = Map.class;
+          }
+        } else {
+          this.returnType = void.class;
+        }
+
+      }
     }
 
     public MappedRequestBuilder setId(String id) {
