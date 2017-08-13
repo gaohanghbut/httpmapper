@@ -20,6 +20,7 @@ public interface TestServiceFacade {
   JsonResult<TestBean> post(@HttpParam("name") String name);
 }
 ```
+说明：httpmapper默认使用fastjson做json反序列化，JsonResult可换成任意对象（json可转成对应的对象类型）
 
 初始化接口（后文会有与Spring集成的方式）：
 ```java
