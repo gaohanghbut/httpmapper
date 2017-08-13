@@ -39,7 +39,10 @@ public void handleInvocation() throws Exception {
 }
 
 ```
-http请求返回的内容在默认情况下会使用FastJson做反序列化，支持自定义反序列化方式
+http请求返回的内容在默认情况下会使用FastJson做反序列化，支持自定义反序列化方式（见下文）
+## 设置post请求的HttpEntity
+@POST注解中的entity属性可指定使用哪种entity，目前支持，FORM, JSON_STRING和SERIALIZER
+三种，如果需要自定义，可以使用ReqeuestPostProcessor（下文会有介绍）
 ## 自定义反序列化HttpResponse
 ### 设置默认的反序列化方式
 可使用Configuration.setDefaultResponseHandler()方法设置默认反序列化，例如：
