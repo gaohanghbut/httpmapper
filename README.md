@@ -40,6 +40,19 @@ public void handleInvocation() throws Exception {
 
 ```
 http请求返回的内容在默认情况下会使用FastJson做反序列化，支持自定义反序列化方式（见下文）
+
+异步调用还可以用ResponseCallback接口，例如：
+```java
+public interface TestServiceFacade {
+
+  /**
+   * 异步调用，通过回调的方式
+   */
+  @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
+  void getString(@HttpParam("name") String name, ResponseCallback<JsonResult<TestBean>> callback);
+}
+
+```
 ## 设置post请求的HttpEntity
 @POST注解中的entity属性可指定使用哪种entity，目前支持，FORM, JSON_STRING和SERIALIZER
 三种，如果需要自定义，可以使用ReqeuestPostProcessor（下文会有介绍）
