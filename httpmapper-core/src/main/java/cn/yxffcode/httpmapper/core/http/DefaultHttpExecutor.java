@@ -1,14 +1,17 @@
 package cn.yxffcode.httpmapper.core.http;
 
+import cn.yxffcode.httpmapper.core.HttpMethod;
 import cn.yxffcode.httpmapper.core.MappedRequest;
 import cn.yxffcode.httpmapper.core.RequestPostProcessor;
 import cn.yxffcode.httpmapper.core.StopRequestException;
 import cn.yxffcode.httpmapper.core.cfg.Configuration;
+import com.alibaba.fastjson.JSON;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.reflect.Reflection;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -17,6 +20,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.SerializableEntity;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.nio.client.HttpAsyncClient;
@@ -24,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -122,9 +129,7 @@ public class DefaultHttpExecutor implements HttpExecutor, AutoCloseable {
           final HttpPost httpPost = new HttpPost();
           invokeBeforeRequest(httpPost, mappedRequest, params);
           if (httpPost.getEntity() == null && params != null && params.size() > 0) {
-            httpPost.setEntity(new UrlEncodedFormEntity(Iterables.transform(params.entrySet(),
-                (Function<Map.Entry<String, Object>, NameValuePair>) en ->
-                    new BasicNameValuePair(en.getKey(), String.valueOf(en.getValue())))));
+            httpPost.setEntity(createHttpEntity(params, mappedRequest));
           }
           httpPost.setURI(new URI(mappedRequest.rendPureUrl(params)));
           return httpPost;
@@ -134,6 +139,30 @@ public class DefaultHttpExecutor implements HttpExecutor, AutoCloseable {
       }
     } catch (URISyntaxException e) {
       throw Throwables.propagate(e);
+    }
+  }
+
+  private HttpEntity createHttpEntity(Map<String, Object> params, MappedRequest mappedRequest) {
+    final HttpMethod httpMethod = mappedRequest.getHttpMethod();
+    if (httpMethod != HttpMethod.POST || mappedRequest.getEntityType() == null) {
+      return new UrlEncodedFormEntity(Iterables.transform(params.entrySet(),
+          (Function<Map.Entry<String, Object>, NameValuePair>) en ->
+              new BasicNameValuePair(en.getKey(), String.valueOf(en.getValue()))));
+    }
+    switch (mappedRequest.getEntityType()) {
+      case SERIALIZER:
+        return new SerializableEntity((Serializable) params);
+      case JSON_STRING:
+        try {
+          return new StringEntity(JSON.toJSONString(params));
+        } catch (UnsupportedEncodingException e) {
+          throw new RuntimeException(e);
+        }
+      case FORM:
+      default:
+        return new UrlEncodedFormEntity(Iterables.transform(params.entrySet(),
+            (Function<Map.Entry<String, Object>, NameValuePair>) en ->
+                new BasicNameValuePair(en.getKey(), String.valueOf(en.getValue()))));
     }
   }
 

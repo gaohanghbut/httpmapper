@@ -10,6 +10,7 @@ import cn.yxffcode.httpmapper.core.POST;
 import cn.yxffcode.httpmapper.core.PUT;
 import cn.yxffcode.httpmapper.core.PostProcessors;
 import cn.yxffcode.httpmapper.core.Request;
+import cn.yxffcode.httpmapper.core.RequestInfo;
 import cn.yxffcode.httpmapper.core.RequestPostProcessor;
 import cn.yxffcode.httpmapper.core.Response;
 import cn.yxffcode.httpmapper.core.ResponseHandler;
@@ -17,12 +18,15 @@ import cn.yxffcode.httpmapper.core.http.DefaultHttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.DefaultHttpExecutor;
 import cn.yxffcode.httpmapper.core.http.HttpClientFactory;
 import cn.yxffcode.httpmapper.core.http.HttpExecutor;
+import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import sun.security.action.GetPropertyAction;
 
 import java.lang.reflect.Method;
+import java.security.AccessController;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -175,18 +179,8 @@ public class Configuration {
         }
         final MappedRequest.MappedRequestBuilder mappedRequestBuilder =
             MappedRequest.newBuilder(method.getGenericReturnType());
-        final String rawUrl = request.value();
-        final int idx = rawUrl.lastIndexOf('#');
-        if (idx < 0) {
-          mappedRequestBuilder.setUrl(rawUrl);
-        } else if (idx < rawUrl.length() - 1 && rawUrl.charAt(idx + 1) != '{') {
-          mappedRequestBuilder.setUrl(rawUrl.substring(0, idx));
-          if (idx != rawUrl.length() - 1) {
-            mappedRequestBuilder.setAttach(rawUrl.substring(idx + 1));
-          }
-        } else {
-          mappedRequestBuilder.setUrl(rawUrl);
-        }
+        final RequestInfo requestInfo = new RequestInfo(request);
+        mappedRequestBuilder.setRequestInfo(requestInfo);
 
         final String mrId = MappedRequestUtils.buildMappedRequestId(mapperClass, method);
         mappedRequestBuilder.setId(mrId);

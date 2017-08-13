@@ -12,4 +12,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Request {
   String value();
+
+  String urlCharset() default "UTF-8";
+
+  long timeout() default -1;
 }

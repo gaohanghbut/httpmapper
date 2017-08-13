@@ -24,8 +24,7 @@ public class MappedRequest {
   private static final Splitter SEPERATE_SPLITTER = Splitter.on('&').trimResults();
 
   private final String id;
-  private final String url;
-  private final String attach;
+  private final RequestInfo requestInfo;
   private final HttpMethod httpMethod;
   private final EntityType entityType;
   private final TextTemplate textTemplate;
@@ -34,27 +33,25 @@ public class MappedRequest {
   private final TextTemplate pureUrlTemplate;
 
   private MappedRequest(String id,
-                        String url,
-                        String attach,
+                        RequestInfo requestInfo,
                         HttpMethod httpMethod,
                         EntityType entityType,
                         Type returnType) {
     this.id = id;
-    this.url = url;
-    this.attach = attach;
+    this.requestInfo = requestInfo;
     this.httpMethod = httpMethod;
     this.entityType = entityType;
-    this.textTemplate = new TextTemplate(url);
+    this.textTemplate = new TextTemplate(requestInfo.getUrl());
     this.returnType = returnType;
 
-    final int i = url.indexOf('?');
-    if (i < 0 || i == url.length() - 1) {
+    final int i = requestInfo.getUrl().indexOf('?');
+    if (i < 0 || i == requestInfo.getUrl().length() - 1) {
       this.queryStringParams = Collections.emptyMap();
       this.pureUrlTemplate = textTemplate;
     } else {
       final Map<String, String> params = Maps.newHashMap();
 
-      final String queryString = url.substring(i + 1);
+      final String queryString = requestInfo.getUrl().substring(i + 1);
 
       for (String pair : SEPERATE_SPLITTER.split(queryString)) {
         final List<String> param = PARAM_SPLITTER.splitToList(pair);
@@ -63,7 +60,7 @@ public class MappedRequest {
 
       this.queryStringParams = Collections.unmodifiableMap(params);
 
-      this.pureUrlTemplate = new TextTemplate(url.substring(0, i));
+      this.pureUrlTemplate = new TextTemplate(requestInfo.getUrl().substring(0, i));
     }
   }
 
@@ -71,16 +68,8 @@ public class MappedRequest {
     return id;
   }
 
-  public String getUrl() {
-    return url;
-  }
-
   public HttpMethod getHttpMethod() {
     return httpMethod;
-  }
-
-  public String getAttach() {
-    return attach;
   }
 
   public EntityType getEntityType() {
@@ -89,6 +78,10 @@ public class MappedRequest {
 
   public Type getReturnType() {
     return returnType;
+  }
+
+  public RequestInfo getRequestInfo() {
+    return requestInfo;
   }
 
   public Map<String, Object> resolveParams(Object parameterObject) {
@@ -109,10 +102,34 @@ public class MappedRequest {
 
   public String rendUrl(Map<String, Object> params) {
     return textTemplate.rend(params).toString();
+//    try {
+//      return URLEncoder.encode(textTemplate.rend(params).toString(), urlEncoding);
+//    } catch (UnsupportedEncodingException e) {
+//      throw new RuntimeException(e);
+//    }
   }
 
   public String rendPureUrl(Map<String, Object> params) {
     return pureUrlTemplate.rend(params).toString();
+//    try {
+//      return URLEncoder.encode(pureUrlTemplate.rend(params).toString(), urlEncoding);
+//    } catch (UnsupportedEncodingException e) {
+//      throw new RuntimeException(e);
+//    }
+  }
+
+  @Override
+  public String toString() {
+    return "MappedRequest{" +
+        "id='" + id + '\'' +
+        ", requestInfo=" + requestInfo +
+        ", httpMethod=" + httpMethod +
+        ", entityType=" + entityType +
+        ", textTemplate=" + textTemplate +
+        ", returnType=" + returnType +
+        ", queryStringParams=" + queryStringParams +
+        ", pureUrlTemplate=" + pureUrlTemplate +
+        '}';
   }
 
   @Override
@@ -120,36 +137,20 @@ public class MappedRequest {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     MappedRequest that = (MappedRequest) o;
-    return Objects.equal(id, that.id) &&
-        Objects.equal(url, that.url) &&
-        Objects.equal(attach, that.attach) &&
-        httpMethod == that.httpMethod &&
-        entityType == that.entityType;
+    return Objects.equal(id, that.id);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(id, url, attach, httpMethod, entityType);
-  }
-
-  @Override
-  public String toString() {
-    return "MappedRequest{" +
-        "id='" + id + '\'' +
-        ", url='" + url + '\'' +
-        ", attach='" + attach + '\'' +
-        ", httpMethod=" + httpMethod +
-        ", entityType=" + entityType +
-        '}';
+    return Objects.hashCode(id);
   }
 
   public static final class MappedRequestBuilder {
     private String id;
-    private String url;
-    private String attach;
     private HttpMethod httpMethod;
     private EntityType entityType;
     private final Type returnType;
+    private RequestInfo requestInfo;
 
     public MappedRequestBuilder(Type returnType) {
       this.returnType = returnType;
@@ -157,16 +158,6 @@ public class MappedRequest {
 
     public MappedRequestBuilder setId(String id) {
       this.id = id;
-      return this;
-    }
-
-    public MappedRequestBuilder setUrl(String url) {
-      this.url = url;
-      return this;
-    }
-
-    public MappedRequestBuilder setAttach(String attach) {
-      this.attach = attach;
       return this;
     }
 
@@ -180,11 +171,16 @@ public class MappedRequest {
       return this;
     }
 
+    public MappedRequestBuilder setRequestInfo(RequestInfo requestInfo) {
+      this.requestInfo = requestInfo;
+      return this;
+    }
+
     public MappedRequest build() {
       if (httpMethod == null) {
         httpMethod = HttpMethod.GET;
       }
-      return new MappedRequest(id, url, attach, httpMethod, entityType, returnType);
+      return new MappedRequest(id, requestInfo, httpMethod, entityType, returnType);
     }
   }
 }

@@ -15,6 +15,7 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author gaohang on 8/7/17.
@@ -51,8 +52,8 @@ public class MappedProxy extends AbstractInvocationHandler {
         return future;
       }
       if (HttpResponse.class.isAssignableFrom((Class<?>) returnType)) {
-        //TODO:设置超时
-        return future.get();
+        return mappedRequest.getRequestInfo().getTimeout() <= 0 ? future.get()
+            : future.get(mappedRequest.getRequestInfo().getTimeout(), TimeUnit.MILLISECONDS);
       }
     }
     if (returnType instanceof ParameterizedType) {
@@ -65,8 +66,8 @@ public class MappedProxy extends AbstractInvocationHandler {
     if (Future.class == method.getReturnType()) {
       return resultFuture;
     }
-    // TODO: 8/11/17 设置超时
-    return resultFuture.get();
+    return mappedRequest.getRequestInfo().getTimeout() <= 0 ? resultFuture.get()
+        : resultFuture.get(mappedRequest.getRequestInfo().getTimeout(), TimeUnit.MILLISECONDS);
   }
 
   private Object resolveRequestParameter(Method method, Object[] args) {
@@ -116,6 +117,9 @@ public class MappedProxy extends AbstractInvocationHandler {
         return method.invoke(future, args);
       }
       final HttpResponse httpResponse = (HttpResponse) method.invoke(future, args);
+      if (httpResponse.getStatusLine().getStatusCode() != 200) {
+        throw new RequestFaildException("请求出错，status=" + httpResponse.getStatusLine().getStatusCode());
+      }
       final ResponseHandler responseHandler = configuration.getResponseHandler(mrId);
 
       return responseHandler.handle(mappedRequest, httpResponse);
