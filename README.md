@@ -11,6 +11,12 @@ public interface TestServiceFacade {
    */
   @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
   Future<JsonResult<TestBean>> get(@HttpParam("name") String name);
+  
+  /**
+   * 异步调用
+   */
+  @Request("http://localhost:8080/home/index.json?name=#{name}&test=1")
+  ListenableFuture<JsonResult<TestBean>> getForListening(@HttpParam("name") String name);
 
   /**
    * 同步调用
@@ -36,6 +42,9 @@ public void handleInvocation() throws Exception {
     
     result = testServiceFacade.post("name").get();
     System.out.println(result);
+    
+    ListenableFuture<JsonResult<TestBean>> f = testServiceFacade.getForListening("name");
+    f.addListener(new Runnable() {xxx}, executor);
 
 }
 
@@ -54,6 +63,7 @@ public interface TestServiceFacade {
 }
 
 ```
+
 ## 设置post请求的HttpEntity
 @POST注解中的entity属性可指定使用哪种entity，目前支持，FORM, JSON_STRING和SERIALIZER
 三种，如果需要自定义，可以使用ReqeuestPostProcessor（下文会有介绍）

@@ -16,8 +16,10 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author gaohang on 8/7/17.
@@ -55,6 +57,15 @@ public class MappedProxy extends AbstractInvocationHandler {
     }
 
     //无泛型
+    final Object result = wrapResult(method, mrId, mappedRequest, future);
+    if (ListenableFuture.class.isAssignableFrom(method.getReturnType())) {
+      return JdkFutureAdapters.listenInPoolThread((Future<? extends Object>) result);
+    }
+    return result;
+  }
+
+  private Object wrapResult(Method method, String mrId, MappedRequest mappedRequest,
+                            Future<HttpResponse> future) throws InterruptedException, ExecutionException, TimeoutException {
     final Type returnType = method.getGenericReturnType();
     if (returnType instanceof Class) {
       if (Future.class == returnType) {
